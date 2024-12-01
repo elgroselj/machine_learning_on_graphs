@@ -1,0 +1,3 @@
+id,model,val/test,r2,mae,rmse,date,time,where,time_needed,id_awareness,epochs,num_blocks,num_sampled_neighbors,depth,batch_size,temporal_strategy,num_layers,channels,aggr,lr
+,Given model,val,0.2252627401407451,3.251164167438576,4.080632754462731,01.12.2024,16:36:45,Leila laptop,76.8809130191803,False,10,1,128,2,512,uniform,2,128,sum,0.005
+,Given model,test,-0.06333044494035711,4.417801835578785,5.372840895936277,01.12.2024,16:36:45,Leila laptop,76.8809130191803,False,10,1,128,2,512,uniform,2,128,sum,0.005
