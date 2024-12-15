@@ -72,11 +72,12 @@ class BlockDiagonalLinear(torch.nn.Module):
             self.register_parameter("bias", None)
             
         self.num_blocks = num_blocks
+        # print("num_blocks", num_blocks)
         assert in_features % num_blocks == 0 
         assert out_features % num_blocks == 0
         self.block_size = (in_features // num_blocks, out_features // num_blocks) # TODO order
         
-        print(self.block_size, self.num_blocks)
+        # print(self.block_size, self.num_blocks)
         
         self.reset_parameters()
         
@@ -97,7 +98,9 @@ class BlockDiagonalLinear(torch.nn.Module):
         # print("number_of_ones", number_of_ones)
         # print("number_of_zeros", mask.numel() - number_of_ones)
         # print("shape", mask.shape)
-        w *= mask
+        w = w * mask
+        # print("number_of_non_zeros_in_w", w.numel() - w[abs(w) < 1e-13].numel())
+        # print(w)
         self.weight.data = w
         # print(self.weight)
 
@@ -114,6 +117,7 @@ class BlockDiagonalLinear(torch.nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         self.enforce_block_diagonal()
+        # print("number_of_non_zeros_in_weight", self.weight.numel() - self.weight[abs(self.weight) < 1e-13].numel())
         return F.linear(input, self.weight, self.bias)
 
     def extra_repr(self) -> str:
@@ -311,6 +315,7 @@ class MyHeteroGraphSAGE(torch.nn.Module):
                 },
                 aggr="sum",
             )
+            
             self.convs.append(conv)
 
         self.norms = torch.nn.ModuleList()

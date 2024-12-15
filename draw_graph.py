@@ -1,5 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import pydot
+from networkx.drawing.nx_pydot import graphviz_layout
 
 # Define the edges based on the provided connections
 # edges = [
@@ -54,12 +56,26 @@ G = nx.DiGraph()
 for edge in edges:
     G.add_edge(edge[0], edge[1], weight=edge[2])
     
-G.add_edge("TRAIN_TABLE", "drivers")
+G.add_edge("LEARN_TABLE", "drivers")
 
-# Draw the graph
-pos = nx.circular_layout(G)  # positions for all nodes
-nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue", font_size=10, font_weight="bold", arrows=True)
-labels = nx.get_edge_attributes(G, 'weight')
-# nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+if True:
+    # Draw the graph
+    pos = nx.circular_layout(G)  # positions for all nodes
+    nx.draw(G, pos, with_labels=True, node_size=3000, node_color="skyblue", font_size=10, font_weight="bold", arrows=True)
+    labels = nx.get_edge_attributes(G, 'weight')
+    # nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
 
-plt.savefig("graph.png")
+    plt.savefig("graph.png")
+else:
+    # get a tree rooted at TRAIN_TABLE
+    # to the depth of 2
+    for depth in range(1, 4):
+    
+        T = nx.bfs_tree(nx.Graph(G), source="LEARN_TABLE", depth_limit=depth +1)
+        pos = nx.nx_agraph.graphviz_layout(T, prog="dot", args="")
+        nx.draw(T, pos, with_labels=True, node_size=3000, node_color="skyblue", font_size=15, font_weight="bold", arrows=False, node_shape="s")
+
+        plt.savefig(f"tree{depth}.png")
+        plt.clf()
+
+
