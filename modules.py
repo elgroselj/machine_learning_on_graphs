@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 from torch.nn import functional as F, init
 from torch.nn.parameter import Parameter, UninitializedParameter
+from torch_geometric.nn import RGCNConv
 
 class BlockDiagonalLinear(torch.nn.Module):
     r"""Applies an affine linear transformation to the incoming data: :math:`y = xA^T + b`.
@@ -496,3 +497,61 @@ class Model(torch.nn.Module):
         )
 
         return self.head(x_dict[dst_table]) """
+        
+
+class HeteroGraphRGCN(torch.nn.Module):
+    def __init__(
+        self,
+        node_types: List[NodeType],
+        edge_types: List[EdgeType],
+        num_relations: int,
+        channels: int,
+        num_blocks: int,
+        aggr: str = "mean",
+        num_layers: int=2,
+        diag_weight: float = 1.0,
+    ):
+        super().__init__()
+
+        self.convs = torch.nn.ModuleList()
+        print(channels)
+        edge_weights = {}
+        for _ in range(num_layers):
+             conv = HeteroConv(
+                 {
+                     edge_type: RGCNConv((channels, channels), channels, num_relations, aggr=aggr,num_blocks = num_blocks)
+                     for edge_type in edge_types
+                 },
+                 aggr="sum",
+             )
+             self.convs.append(conv)
+            
+        self.norms = torch.nn.ModuleList()
+        for _ in range(num_layers):
+            norm_dict = torch.nn.ModuleDict()
+            for node_type in node_types:
+                norm_dict[node_type] = LayerNorm(channels, mode="node")
+            self.norms.append(norm_dict)
+
+    def reset_parameters(self):
+        for conv in self.convs:
+            conv.reset_parameters()
+        for norm_dict in self.norms:
+            for norm in norm_dict.values():
+                norm.reset_parameters()
+
+    def forward(
+        self,
+        x_dict: Dict[NodeType, Tensor],
+        edge_index_dict: Dict[NodeType, Tensor],
+        edge_type_dict: Dict[NodeType, Tensor],
+        num_sampled_nodes_dict: Optional[Dict[NodeType, List[int]]] = None,
+        num_sampled_edges_dict: Optional[Dict[EdgeType, List[int]]] = None,
+    ) -> Dict[NodeType, Tensor]:
+        for _, (conv, norm_dict) in enumerate(zip(self.convs, self.norms)):
+
+            x_dict = conv(x_dict, edge_index_dict,edge_type_dict)
+            x_dict = {key: norm_dict[key](x) for key, x in x_dict.items()}
+            x_dict = {key: x.relu() for key, x in x_dict.items()}
+
+        return x_dict
